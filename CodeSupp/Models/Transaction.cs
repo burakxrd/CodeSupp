@@ -1,0 +1,48 @@
+﻿using CodeSupp.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CodeSupp.Models
+{
+    public class Transaction
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string TenantId { get; set; } = null!;
+
+        public DateTime Date { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        // Gelir mi Gider mi?
+        public TransactionType Type { get; set; }
+
+        // Detaylar
+        public TransactionCategory Category { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal Amount { get; set; }
+
+        [StringLength(500)]
+        public string? Description { get; set; }
+
+        // --- İLİŞKİLER (Polymorphic yerine Nullable FK - Daha basit ve hızlı) ---
+
+        // Eğer bu kayıt bir Gider'den geldiyse:
+        public int? ExpenseId { get; set; }
+        [ForeignKey("ExpenseId")]
+        public virtual Expense? Expense { get; set; }
+
+        // Eğer bu kayıt bir Tahsilat'tan geldiyse:
+        public int? PaymentId { get; set; }
+        [ForeignKey("PaymentId")]
+        public virtual Payment? Payment { get; set; }
+
+        public Transaction()
+        {
+            CreatedAt = DateTime.UtcNow;
+            Date = DateTime.UtcNow;
+        }
+    }
+}

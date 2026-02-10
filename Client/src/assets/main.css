@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* --- 1. TEMA AYARLARI (MEZARINA KADAR DOĞRU) --- */
+/* Not: VS Code buradaki @theme yazısının altını çizebilir. */
+/* Bu bir hata DEĞİLDİR, Tailwind v4'ün yeni özelliğidir. Görmezden gel, kod çalışır. */
+@theme {
+    /* -- RENKLER -- */
+    --color-primary: #4F46E5;       /* Indigo-600 */
+    --color-primary-hover: #4338CA; /* Indigo-700 */
+    
+    /* Mor Gradient Renkleri */
+    --color-accent-start: #a855f7;  /* Purple-500 */
+    --color-accent-end: #6366f1;    /* Indigo-500 */
+
+    /* Koyu Tema Paleti */
+    --color-bg-dark: #111827;       /* Arka Plan */
+    --color-card: #1E1E2D;          /* Kartlar */
+    --color-card-border: #2B2B40;   /* Kenarlıklar */
+    
+    --color-input: #151521;         /* Inputlar */
+    --color-input-border: #374151;  /* Input Çerçevesi */
+    
+    /* Font */
+    --font-sans: 'Inter', sans-serif;
+}
+
+/* --- 2. GLOBAL AYARLAR (STANDART CSS) --- */
+/* @apply yerine standart CSS kullandık, kırmızı çizgi çıkmasın diye */
+html {
+    scroll-behavior: smooth;
+    background-color: var(--color-bg-dark); /* bg-bg-dark */
+    color: #D1D5DB; /* text-gray-300 */
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- 3. SCROLLBAR --- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--color-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #374151; /* gray-700 */
+    border-radius: 9999px;
+    transition: background-color 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #4B5563; /* gray-600 */
+}
+
+/* --- 4. ÖZEL EFEKTLER --- */
+
+/* Gradient Yazı Efekti */
+.text-gradient {
+    background: linear-gradient(to right, var(--color-accent-start), var(--color-accent-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+}
+
+/* Navigasyon Link Animasyonları */
+.nav-link-animated {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    color: #9CA3AF; /* gray-400 */
+    font-weight: 500;
+}
+
+.nav-link-animated:hover {
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+/* Altı Çizgili Efekt */
+.nav-link-animated::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -4px;
+    left: 0;
+    background: linear-gradient(to right, var(--color-accent-start), var(--color-accent-end)); 
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 99px;
+}
+
+.nav-link-animated:hover::after {
+    width: 100%;
+}   
