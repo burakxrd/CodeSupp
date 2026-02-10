@@ -1,0 +1,47 @@
+# --- Genel Sistem Dosyaları ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Visual Studio & .NET Core ---
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Bb]in/
+[Oo]bj/
+*.cache
+*.pdb
+
+# IDE Ayarları (VS Code vb.)
+.vscode/
+.idea/
+
+# --- Node.js & Frontend (Tüm klasörler için geçerli) ---
+node_modules/
+**/node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Frontend Build Çıktıları
+dist/
+**/dist/
+build/
+
+# --- Çevre Değişkenleri (GÜVENLİK İÇİN ÖNEMLİ) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Projeye Özel Dosyalar ---
+# Kullanıcı tarafından yüklenen resimleri (uploads) git'e atmamak için:
+CodeSupp/wwwroot/uploads/
+**/wwwroot/uploads/
+
+# appsettings.Development.json dosyasını genelde sunucuya atmayız (kişisel ayarlar olabilir)
+# Eğer takım çalışması yapıyorsan bunu açabilirsin, ama şimdilik gizli kalsın:
+CodeSupp/appsettings.Development.json
