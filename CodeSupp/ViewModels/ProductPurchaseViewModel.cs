@@ -23,22 +23,9 @@ namespace CodeSupp.ViewModels
         [Range(0, double.MaxValue, ErrorMessage = "Fiyat negatif olamaz.")]
         public decimal ProductPricePerUnit { get; set; }
 
-        [Display(Name = "Toplam Kargo Ağırlığı (Kg)")]
-        [Range(0, double.MaxValue, ErrorMessage = "Ağırlık negatif olamaz.")]
-        public decimal TotalKg { get; set; }
-
-        [Display(Name = "Kargo Ücreti (Kg Başına, TL)")]
-        [Range(0, double.MaxValue, ErrorMessage = "Kargo ücreti negatif olamaz.")]
-        public decimal ShippingCostPerKg { get; set; }
-        [Display(Name = "Toplam Kargo Maliyeti")]
-        public decimal TotalShippingCost => TotalKg * ShippingCostPerKg;
         [Display(Name = "Birim Başına Gerçek Maliyet")]
-        public decimal EffectiveUnitCost
-        {
-            get
-            {
-                if (QuantityInUnits <= 0) return 0;
-                return ProductPricePerUnit + (TotalShippingCost / QuantityInUnits);}}
+        public decimal EffectiveUnitCost => ProductPricePerUnit;
+
         [Display(Name = "Satın Alım Tarihi")]
         public DateTime? PurchaseDate { get; set; }
         [Display(Name = "Toplam Maliyet")]

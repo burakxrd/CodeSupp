@@ -7,7 +7,6 @@ using CodeSupp.Services.Dashboard;
 using CodeSupp.Services.Finance;
 using CodeSupp.Services.Identity;
 using CodeSupp.Services.Infrastructure;
-using CodeSupp.Services.Integration;
 using CodeSupp.Services.Products;
 using CodeSupp.Services.Sales;
 using CodeSupp.Validators;
@@ -40,7 +39,6 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleQueries, SaleQueries>();
 builder.Services.AddScoped<ISaleCommands, SaleCommands>();
-builder.Services.AddScoped<IIntegrationService, IntegrationService>();
 builder.Services.AddScoped<IFinanceService, FinanceService>();
 
 
@@ -113,7 +111,7 @@ builder.Services.AddAuthentication(options =>
 {
     var jwtSettings = builder.Configuration.GetSection("Jwt");
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false; // Production'da SSL varsa true yapýlabilir
+    options.RequireHttpsMetadata = false; 
 
     options.TokenValidationParameters = new TokenValidationParameters()
     {
@@ -125,12 +123,10 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 
-    // Sadece fonksiyonel kýsýmlarý býraktýk, debug loglarý temizlendi.
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
-            // Token Header'da yoksa Cookie'ye bak (Bu mantýk önemli)
             if (context.Request.Cookies.ContainsKey("X-Access-Token"))
             {
                 context.Token = context.Request.Cookies["X-Access-Token"];

@@ -6,8 +6,6 @@ namespace CodeSupp.Models
     public class ProductPurchaseHistory
     {
         public int Id { get; set; }
-
-        // --- İlişkili Ürün ---
         public int ProductId { get; set; }
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
@@ -22,14 +20,6 @@ namespace CodeSupp.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal ProductPricePerUnit { get; set; }
 
-        [Display(Name = "Toplam Ağırlık (Kg)")]
-        [Column(TypeName = "decimal(18, 4)")]
-        public decimal TotalKg { get; set; }
-
-        [Display(Name = "Kargo Ücreti (Kg Başına, TL)")]
-        [Column(TypeName = "decimal(18, 2)")]
-        public decimal ShippingCostPerKg { get; set; }
-
         [Display(Name = "Toplam Ürün Maliyeti (TL)")]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalProductCost { get; set; }
@@ -41,6 +31,7 @@ namespace CodeSupp.Models
         [Display(Name = "Toplam Maliyet (TL)")]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalCost { get; set; }
+
         [StringLength(500)]
         public string? Description { get; set; }
 
@@ -55,7 +46,6 @@ namespace CodeSupp.Models
         public void CalculateCosts()
         {
             TotalProductCost = Quantity * ProductPricePerUnit;
-            TotalShippingCost = TotalKg * ShippingCostPerKg;
             TotalCost = TotalProductCost + TotalShippingCost;
         }
     }

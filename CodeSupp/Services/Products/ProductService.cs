@@ -25,7 +25,6 @@ namespace CodeSupp.Services.Products
             if (string.IsNullOrWhiteSpace(productName)) return "X101";
 
             var culture = new CultureInfo("tr-TR");
-            // Sadece harf ve rakamları bırak
             var cleanName = Regex.Replace(productName, "[^a-zA-Z0-9 ]", "");
             var words = cleanName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -40,7 +39,6 @@ namespace CodeSupp.Services.Products
 
             if (string.IsNullOrEmpty(prefix)) prefix = "UR";
 
-            // Global Query Filter devrede, sadece kendi tenantımızın kodlarına bakarız.
             var lastCode = await _context.Products
                 .Where(p => p.Code != null && p.Code.StartsWith(prefix))
                 .OrderByDescending(p => p.Code!.Length)
@@ -145,13 +143,42 @@ namespace CodeSupp.Services.Products
                 PurchaseDate = DateTime.UtcNow,
                 Quantity = quantity,
                 ProductPricePerUnit = unitCost,
+                TotalProductCost = quantity * unitCost,
+                TotalShippingCost = 0,
                 TotalCost = quantity * unitCost,
-                TotalKg = 0,
-                ShippingCostPerKg = 0,
                 Description = "Açılış Stoğu / Devir"
             };
 
             _context.ProductPurchaseHistories.Add(history);
+            await _context.SaveChangesAsync(); 
+
+            var expense = new Expense
+            {
+                CreatedAt = DateTime.UtcNow,
+                Date = history.PurchaseDate,
+                Amount = history.TotalCost,
+                Category = TransactionCategory.StockPurchase,
+                PaymentMethod = PaymentMethod.Cash,
+                Description = $"Açılış Stoğu - Ürün #{productId} ({quantity} Adet)",
+                ProductPurchaseHistoryId = history.Id
+            };
+
+            _context.Expenses.Add(expense);
+            await _context.SaveChangesAsync(); 
+
+            var transactionRecord = new Transaction
+            {
+                Type = TransactionType.Expense,
+                Category = expense.Category,
+                PaymentMethod = expense.PaymentMethod,
+                Amount = expense.Amount,
+                Description = expense.Description,
+                Date = expense.Date,
+                ExpenseId = expense.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Transactions.Add(transactionRecord);
             await _context.SaveChangesAsync();
         }
 
@@ -159,7 +186,6 @@ namespace CodeSupp.Services.Products
         {
             ValidateProductPrices(product);
 
-            // [NORMALIZATION] Arama metnini oluştur (Türkçe -> İngilizce)
             product.SearchText = PrepareSearchText(product.Name, product.Code);
 
             if (product.CategoryId.HasValue)
@@ -174,7 +200,6 @@ namespace CodeSupp.Services.Products
             if (string.IsNullOrEmpty(product.Code))
             {
                 product.Code = await GenerateSmartCodeAsync(product.Name);
-                // Kod sonradan üretildiği için SearchText'i güncelle
                 product.SearchText = PrepareSearchText(product.Name, product.Code);
             }
 
@@ -193,7 +218,6 @@ namespace CodeSupp.Services.Products
         {
             ValidateProductPrices(product);
 
-            // [NORMALIZATION] Arama metnini güncelle
             product.SearchText = PrepareSearchText(product.Name, product.Code);
 
             if (product.CategoryId.HasValue)

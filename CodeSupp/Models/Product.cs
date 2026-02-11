@@ -9,7 +9,7 @@ namespace CodeSupp.Models
     public class Product
     {
         public int Id { get; set; }
-        [JsonIgnore] // API'den dönerken görünmesine gerek yok
+        [JsonIgnore] 
         public string? SearchText { get; set; }
 
         [Display(Name = "Ürün Adı")]

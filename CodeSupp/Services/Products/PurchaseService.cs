@@ -3,6 +3,7 @@ using CodeSupp.Models;
 using CodeSupp.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using CodeSupp.Enums;
 
 namespace CodeSupp.Services.Products
 {
@@ -24,7 +25,6 @@ namespace CodeSupp.Services.Products
         /// </summary>
         public async Task<PaginatedResult<ProductPurchaseViewModel>> GetPurchaseHistoryAsync(int page, int pageSize)
         {
-            // Global Tenant Filter devrede
             var query = _context.ProductPurchaseHistories
                 .AsNoTracking()
                 .Include(h => h.Product)
@@ -42,8 +42,6 @@ namespace CodeSupp.Services.Products
                     ProductId = h.ProductId,
                     QuantityInUnits = h.Quantity,
                     ProductPricePerUnit = h.ProductPricePerUnit,
-                    TotalKg = h.TotalKg,
-                    ShippingCostPerKg = h.ShippingCostPerKg,
                     PurchaseDate = h.PurchaseDate,
                     TotalCost = h.TotalCost,
                     Description = h.Description,
@@ -62,7 +60,6 @@ namespace CodeSupp.Services.Products
 
         public async Task<ProductPurchaseViewModel?> GetPurchaseByIdAsync(int id)
         {
-            // FirstOrDefaultAsync ile Global Filter garantisi
             var h = await _context.ProductPurchaseHistories
                 .AsNoTracking()
                 .Include(x => x.Product)
@@ -70,7 +67,6 @@ namespace CodeSupp.Services.Products
 
             if (h == null) return null;
 
-            // Dropdown listesini hazırlıyoruz (Sadece Tenant'ın ürünleri gelir)
             var products = await _context.Products
                 .AsNoTracking()
                 .OrderBy(p => p.Name)
@@ -83,8 +79,6 @@ namespace CodeSupp.Services.Products
                 ProductId = h.ProductId,
                 QuantityInUnits = h.Quantity,
                 ProductPricePerUnit = h.ProductPricePerUnit,
-                TotalKg = h.TotalKg,
-                ShippingCostPerKg = h.ShippingCostPerKg,
                 PurchaseDate = h.PurchaseDate,
                 TotalCost = h.TotalCost,
                 Description = h.Description,
@@ -94,7 +88,6 @@ namespace CodeSupp.Services.Products
 
         public async Task<ProductPurchaseViewModel> GetCreatePurchaseDataAsync()
         {
-            // Global Tenant Filter devrede
             var products = await _context.Products
                 .AsNoTracking()
                 .OrderBy(p => p.Name)
@@ -116,11 +109,9 @@ namespace CodeSupp.Services.Products
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Ürünü Bul
                 var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == model.ProductId);
                 if (product == null) throw new KeyNotFoundException("Seçilen ürün bulunamadı.");
 
-                // 2. Satın Alma Geçmişi Nesnesi
                 var history = new ProductPurchaseHistory
                 {
                     ProductId = model.ProductId,
@@ -129,32 +120,45 @@ namespace CodeSupp.Services.Products
                         : DateTime.Now,
                     Quantity = model.QuantityInUnits,
                     ProductPricePerUnit = model.ProductPricePerUnit,
-                    TotalKg = model.TotalKg,
-                    ShippingCostPerKg = model.ShippingCostPerKg,
                     Description = model.Description
                 };
                 history.CalculateCosts();
 
-                // 3. Gider (Expense) Nesnesi
                 var expense = new Expense
                 {
                     CreatedAt = DateTime.UtcNow,
                     Date = history.PurchaseDate,
                     Amount = history.TotalCost,
+                    Category = TransactionCategory.StockPurchase, 
+                    PaymentMethod = PaymentMethod.Cash,
                     Description = !string.IsNullOrEmpty(model.Description)
                         ? $"{product.Name} Alımı - {model.Description}"
                         : $"Stok Alımı: {product.Name} ({model.QuantityInUnits} Adet)",
                     ProductPurchaseHistory = history
                 };
 
-                // 4. Stok Güncelleme
                 product.Stock += model.QuantityInUnits;
 
-                // 5. Context'e Ekleme
                 _context.Expenses.Add(expense);
                 _context.Products.Update(product);
 
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); 
+
+                var transactionRecord = new Transaction
+                {
+                    Type = TransactionType.Expense,
+                    Category = expense.Category,
+                    PaymentMethod = expense.PaymentMethod,
+                    Amount = expense.Amount,
+                    Description = expense.Description,
+                    Date = expense.Date,
+                    ExpenseId = expense.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Transactions.Add(transactionRecord);
+                await _context.SaveChangesAsync(); 
+
                 await transaction.CommitAsync();
 
                 return history;
@@ -180,7 +184,6 @@ namespace CodeSupp.Services.Products
                 var expense = await _context.Expenses
                     .FirstOrDefaultAsync(e => e.ProductPurchaseHistoryId == id);
 
-                // Ürün değişikliği kontrolü
                 var newProduct = (history.ProductId == model.ProductId)
                     ? history.Product
                     : await _context.Products.FirstOrDefaultAsync(p => p.Id == model.ProductId);
@@ -195,9 +198,7 @@ namespace CodeSupp.Services.Products
                 }
                 else
                 {
-                    // Eski ürünün stoğunu iade et
                     history.Product.Stock -= history.Quantity;
-                    // Yeni ürünün stoğunu arttır
                     newProduct.Stock += model.QuantityInUnits;
 
                     _context.Products.Update(history.Product);
@@ -207,8 +208,6 @@ namespace CodeSupp.Services.Products
                 history.ProductId = model.ProductId;
                 history.Quantity = model.QuantityInUnits;
                 history.ProductPricePerUnit = model.ProductPricePerUnit;
-                history.TotalKg = model.TotalKg;
-                history.ShippingCostPerKg = model.ShippingCostPerKg;
                 history.Description = model.Description;
                 if (model.PurchaseDate.HasValue)
                     history.PurchaseDate = model.PurchaseDate.Value.Date.Add(DateTime.Now.TimeOfDay);
@@ -224,6 +223,17 @@ namespace CodeSupp.Services.Products
                         ? $"{newProduct.Name} Alımı - {model.Description}"
                         : $"Stok Alımı: {newProduct.Name} ({model.QuantityInUnits} Adet)";
                     _context.Expenses.Update(expense);
+
+                    var transactionRecord = await _context.Transactions
+                        .FirstOrDefaultAsync(t => t.ExpenseId == expense.Id);
+
+                    if (transactionRecord != null)
+                    {
+                        transactionRecord.Amount = expense.Amount;
+                        transactionRecord.Description = expense.Description;
+                        transactionRecord.Date = expense.Date;
+                        _context.Transactions.Update(transactionRecord);
+                    }
                 }
 
                 _context.ProductPurchaseHistories.Update(history);
@@ -287,7 +297,6 @@ namespace CodeSupp.Services.Products
         {
             if (models == null || !models.Any()) return (false, "Liste boş.", 0);
 
-            // Lookup Dictionary (Tenant filtresi global olarak devrede)
             var productIds = models.Select(m => m.ProductId).Distinct().ToList();
             var productsDict = await _context.Products
                 .Where(p => productIds.Contains(p.Id))
@@ -311,8 +320,6 @@ namespace CodeSupp.Services.Products
                             : DateTime.Now,
                         Quantity = model.QuantityInUnits,
                         ProductPricePerUnit = model.ProductPricePerUnit,
-                        TotalKg = model.TotalKg,
-                        ShippingCostPerKg = model.ShippingCostPerKg,
                         Description = model.Description ?? "Toplu Alım"
                     };
                     history.CalculateCosts();
@@ -322,6 +329,8 @@ namespace CodeSupp.Services.Products
                         CreatedAt = DateTime.UtcNow,
                         Date = history.PurchaseDate,
                         Amount = history.TotalCost,
+                        Category = TransactionCategory.StockPurchase, 
+                        PaymentMethod = PaymentMethod.Cash,
                         Description = $"Toplu Alım: {product.Name} ({model.QuantityInUnits} Adet)",
                         ProductPurchaseHistory = history
                     };
@@ -335,7 +344,32 @@ namespace CodeSupp.Services.Products
 
                 if (successCount > 0)
                 {
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(); 
+
+                    var expenseIds = _context.Expenses
+                        .Where(e => e.ProductPurchaseHistory != null &&
+                                    productIds.Contains(e.ProductPurchaseHistory.ProductId))
+                        .Select(e => new { e.Id, e.Amount, e.Description, e.Date, e.Category, e.PaymentMethod })
+                        .ToList();
+
+                    foreach (var exp in expenseIds)
+                    {
+                        var transactionRecord = new Transaction
+                        {
+                            Type = TransactionType.Expense,
+                            Category = exp.Category,
+                            PaymentMethod = exp.PaymentMethod,
+                            Amount = exp.Amount,
+                            Description = exp.Description,
+                            Date = exp.Date,
+                            ExpenseId = exp.Id,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.Transactions.Add(transactionRecord);
+                    }
+
+                    await _context.SaveChangesAsync(); 
+
                     await transaction.CommitAsync();
                     return (true, $"{successCount} kalem ürün başarıyla işlendi.", successCount);
                 }

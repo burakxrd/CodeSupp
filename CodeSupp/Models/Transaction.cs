@@ -14,10 +14,8 @@ namespace CodeSupp.Models
         public DateTime Date { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        // Gelir mi Gider mi?
         public TransactionType Type { get; set; }
 
-        // Detaylar
         public TransactionCategory Category { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
 
@@ -27,14 +25,9 @@ namespace CodeSupp.Models
         [StringLength(500)]
         public string? Description { get; set; }
 
-        // --- İLİŞKİLER (Polymorphic yerine Nullable FK - Daha basit ve hızlı) ---
-
-        // Eğer bu kayıt bir Gider'den geldiyse:
         public int? ExpenseId { get; set; }
         [ForeignKey("ExpenseId")]
         public virtual Expense? Expense { get; set; }
-
-        // Eğer bu kayıt bir Tahsilat'tan geldiyse:
         public int? PaymentId { get; set; }
         [ForeignKey("PaymentId")]
         public virtual Payment? Payment { get; set; }
