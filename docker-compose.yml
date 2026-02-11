@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # 1. Veritabanı (SQL Server)
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: codesupp_db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=GucluBirSifre123!
+    ports:
+      - "1433:1433"
+    networks:
+      - codesupp-net
+
+  # 2. Backend API
+  backend:
+    build: ./CodeSupp
+    container_name: codesupp_api
+    restart: always
+    depends_on:
+      - sqlserver
+    ports:
+      # İSTEDİĞİN GİBİ: Dışarıya 6000, İçeriye 8080
+      - "6000:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CodeSuppDb;User Id=sa;Password=GucluBirSifre123!;TrustServerCertificate=True;
+      # Swagger'ın doğru çalışması için (opsiyonel ama önerilir)
+      - ASPNETCORE_URLS=http://+:8080
+    networks:
+      - codesupp-net
+
+  # 3. Frontend (Vue)
+  frontend:
+    build: ./Client
+    container_name: codesupp_ui
+    restart: always
+    ports:
+      # İSTEDİĞİN GİBİ: Dışarıya 6001, İçeriye 80 (Nginx)
+      - "6001:80"
+    depends_on:
+      - backend
+    networks:
+      - codesupp-net
+
+networks:
+  codesupp-net:
+    driver: bridge

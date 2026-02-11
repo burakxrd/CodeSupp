@@ -46,24 +46,12 @@ namespace CodeSupp.Controllers
                 .AsNoTracking()
                 .AsQueryable();
 
-            // ✅ DÜZELTİLDİ: SearchText üzerinden case-insensitive arama
             if (!string.IsNullOrWhiteSpace(search))
             {
-                // Kullanıcının girdiğini normalize et
-                var normalizedSearch = search.Trim()
-                    .Replace("İ", "i").Replace("ı", "i")
-                    .Replace("Ö", "o").Replace("ö", "o")
-                    .Replace("Ü", "u").Replace("ü", "u")
-                    .Replace("Ş", "s").Replace("ş", "s")
-                    .Replace("Ğ", "g").Replace("ğ", "g")
-                    .Replace("Ç", "c").Replace("ç", "c")
-                    .ToLowerInvariant();
+                var normalizedSearch = TextNormalizer.NormalizeTurkish(search);
 
-                // SearchText zaten küçük harfli normalize edilmiş, ama PostgreSQL'de
-                // Contains() case-sensitive çalıştığı için ToLower() ekliyoruz
                 query = query.Where(p =>
-                    p.SearchText != null &&
-                    p.SearchText.ToLower().Contains(normalizedSearch)
+                    p.SearchText != null && p.SearchText.Contains(normalizedSearch)
                 );
             }
 

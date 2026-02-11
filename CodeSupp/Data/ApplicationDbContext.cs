@@ -2,7 +2,7 @@
 using CodeSupp.Services.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
+using CodeSupp.Services.Infrastructure;
 
 namespace CodeSupp.Data
 {
@@ -63,9 +63,21 @@ namespace CodeSupp.Data
 
                             if (originalTenantId != currentPropValue)
                             {
-                                throw new InvalidOperationException($"CRITICAL SECURITY ERROR: '{entry.Entity.GetType().Name}' kaydının TenantId değeri değiştirilemez!");
+                                throw new InvalidOperationException(
+                                    $"CRITICAL SECURITY ERROR: '{entry.Entity.GetType().Name}' kaydının TenantId değeri değiştirilemez!"
+                                );
                             }
                         }
+                    }
+
+                    if (entry.Entity is Customer customer)
+                    {
+                        customer.SearchText = TextNormalizer.NormalizeTurkish(customer.Name);
+                    }
+
+                    if (entry.Entity is Product product)
+                    {
+                        product.SearchText = TextNormalizer.NormalizeTurkish($"{product.Name} {product.Code}");
                     }
                 }
             }

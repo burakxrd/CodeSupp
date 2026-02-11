@@ -10,7 +10,6 @@ namespace CodeSupp.Models
         [Required(ErrorMessage = "Müşteri adı zorunludur.")]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
-
         [Display(Name = "E-posta")]
         [MaxLength(100)]
         public string? Email { get; set; }
@@ -30,7 +29,8 @@ namespace CodeSupp.Models
         [Display(Name = "Oluşturulma Tarihi")]
         [DisplayFormat(DataFormatString = "{0:dd.MM.yyyy}")]
         public DateTime CreatedAt { get; set; }
-
+        [MaxLength(200)]
+        public string? SearchText { get; set; }
         [Required]
         public string TenantId { get; set; } = string.Empty;
         public virtual ICollection<Sale> Sales { get; set; }

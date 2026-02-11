@@ -2,6 +2,7 @@
 using CodeSupp.Models;
 using CodeSupp.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using CodeSupp.Services.Infrastructure;
 
 namespace CodeSupp.Services.Customers
 {
@@ -14,23 +15,26 @@ namespace CodeSupp.Services.Customers
             _context = context;
         }
 
-        /// <summary>
-        /// Müşterileri sayfalı ve filtreli şekilde listeler.
-        /// [GÜNCELLEME] ToUpper() ile case-insensitive arama (PostgreSQL collation bağımsız)
-        /// </summary>
-        public async Task<PaginatedResult<CustomerListViewModel>> GetCustomersAsync(int pageNumber = 1, int pageSize = 10, string? statusFilter = null, string? searchTerm = null)
+        public async Task<PaginatedResult<CustomerListViewModel>> GetCustomersAsync(
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? statusFilter = null,
+            string? searchTerm = null)
         {
             var query = _context.Customers
                 .AsNoTracking()
                 .AsQueryable();
 
-            // 1. Arama Filtresi (ToUpper ile case-insensitive)
+            // 1. Arama Filtresi
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                var searchUpper = searchTerm.Trim().ToUpperInvariant();
+                var normalizedSearch = NormalizeTurkish(searchTerm.Trim());
 
                 query = query.Where(c =>
-                    c.Name.ToUpper().Contains(searchUpper) ||
+                    // SearchText üzerinden ara (Türkçe karakterler normalize)
+                    (c.SearchText != null && c.SearchText.Contains(normalizedSearch)) ||
+
+                    // Telefon araması (numeric, direkt)
                     (c.Phone != null && c.Phone.Contains(searchTerm.Trim()))
                 );
             }
@@ -137,17 +141,17 @@ namespace CodeSupp.Services.Customers
 
         /// <summary>
         /// [YENİ] İsme göre müşteriyi bulur, yoksa oluşturur.
-        /// (Bulk Import ve Hızlı Satış senaryoları için optimizedir)
+        /// (Bulk Import ve Hızlı Satış senaryoları için optimize edildi)
         /// </summary>
         public async Task<Customer> GetOrCreateCustomerAsync(string name, string? phone, string? address)
         {
-            // 1. Veri Normalizasyonu (Trim ve Null Check)
+            // 1. Veri Normalizasyonu
             var customerName = string.IsNullOrWhiteSpace(name) ? "Misafir" : name.Trim();
-            var customerNameUpper = customerName.ToUpperInvariant();
+            var normalizedName = NormalizeTurkish(customerName);
 
-            // 2. Mevcut Müşteriyi Ara (ToUpper ile case-insensitive)
+            // 2. Mevcut Müşteriyi Ara (SearchText üzerinden - Türkçe karakterler normalize)
             var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.Name.ToUpper() == customerNameUpper);
+                .FirstOrDefaultAsync(c => c.SearchText == normalizedName);
 
             // 3. Varsa Döndür
             if (customer != null)
@@ -155,7 +159,7 @@ namespace CodeSupp.Services.Customers
                 return customer;
             }
 
-            // 4. Yoksa Oluştur
+            // 4. Yoksa Oluştur (SearchText, SaveChanges'te otomatik doldurulacak)
             customer = new Customer
             {
                 Name = customerName,
@@ -168,6 +172,21 @@ namespace CodeSupp.Services.Customers
             await _context.SaveChangesAsync();
 
             return customer;
+        }
+
+        // 🆕 Türkçe Karakter Normalizasyon Metodu
+        private static string NormalizeTurkish(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+
+            return input
+                .Replace("İ", "i").Replace("I", "i").Replace("ı", "i")
+                .Replace("Ö", "o").Replace("ö", "o")
+                .Replace("Ü", "u").Replace("ü", "u")
+                .Replace("Ş", "s").Replace("ş", "s")
+                .Replace("Ğ", "g").Replace("ğ", "g")
+                .Replace("Ç", "c").Replace("ç", "c")
+                .ToLowerInvariant();
         }
     }
 }

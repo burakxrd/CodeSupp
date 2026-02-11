@@ -89,6 +89,7 @@ const findBestMatch = (aiProductName: string): string | number => {
 
 // --- İŞLEMLER ---
 
+// 1. Analiz Et (Ortak Fonksiyon)
 const handleAnalyze = async (event: Event) => {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
@@ -100,10 +101,11 @@ const handleAnalyze = async (event: Event) => {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('docType', activeTab.value);
+    formData.append('docType', activeTab.value); // 'invoice' veya 'order'
 
     try {
         const aiResponse = await api.analyzeDocument(formData);
+        // Gelen veri string ise parse et, değilse direkt kullan
         let aiData = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;
 
         if (activeTab.value === 'invoice') {
@@ -120,13 +122,14 @@ const handleAnalyze = async (event: Event) => {
             }));
         } else {
             // --- DM/SATIŞ MODU ---
+            // Beklenen AI Formatı: { customerName: "...", address: "...", phone: "...", products: [{productName, quantity, unitPrice}] }
             const orderData = Array.isArray(aiData) ? aiData[0] : aiData;
             
             // Ürünleri eşleştir
             if (orderData.products && Array.isArray(orderData.products)) {
                 orderData.products = orderData.products.map((p: any) => ({
                     ...p,
-                    productId: findBestMatch(p.productName), 
+                    productId: findBestMatch(p.productName), // ID Eşleştirme
                     originalName: p.productName
                 }));
             }
@@ -138,11 +141,13 @@ const handleAnalyze = async (event: Event) => {
         alert("Analiz başarısız: " + (err.response?.data || err.message));
     } finally {
         isAnalyzing.value = false;
-        target.value = ''; 
+        target.value = ''; // Input'u temizle
     }
 };
 
+// 2. Kaydetme Fonksiyonları
 
+// A) Fatura Kaydet (Alım)
 const savePurchase = async () => {
     const invalidItems = detectedPurchaseItems.value.filter(x => !x.productId);
     if (invalidItems.length > 0) {
@@ -150,9 +155,10 @@ const savePurchase = async () => {
         return;
     }
     try {
+        // any kullanımı: Backend'in beklediği tam tipi bilmediğimiz durumlarda (BulkSaleItemViewModel vb.) geçici çözüm
         await api.post('/product-purchase/bulk', detectedPurchaseItems.value);
         alert("Stok girişi başarılı! 📥");
-        router.push('/dashboard/products');
+        router.push('/dashboard/purchases');
     } catch (err: any) {
         alert("Hata: " + err.message);
     }
@@ -175,7 +181,7 @@ const saveOrder = async () => {
         await api.createBulkSale(payload);
         
         alert("Sipariş başarıyla oluşturuldu! 💰");
-        router.push('/dashboard/sales');
+        router.push('/dashboard/orders');
     } catch (err: any) {
         alert("Hata: " + (err.response?.data?.message || err.message));
     }

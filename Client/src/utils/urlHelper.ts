@@ -3,7 +3,8 @@
 /// <reference types="vite/client" />
 
 // import.meta.env.VITE_API_BASE_URL string döner ama garanti olsun diye string tipini belirtiyoruz.
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "http://localhost:5270";
+
 /**
  * Veritabanındaki resim yolunu tam URL'e çevirir.
  * Örn: "uploads\products\resim.jpg" -> "https://api.site.com/uploads/products/resim.jpg"

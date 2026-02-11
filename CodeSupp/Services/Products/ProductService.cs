@@ -117,7 +117,13 @@ namespace CodeSupp.Services.Products
 
             foreach (var item in costs)
             {
-                decimal avgCost = item.TotalQty > 0 ? item.TotalCost / item.TotalQty : 0;
+                decimal avgCost = item.TotalQty > 0
+                    ? item.TotalCost / item.TotalQty
+                    : (await _context.Products
+                        .Where(p => p.Id == item.ProductId)
+                        .Select(p => p.CostPrice)
+                        .FirstOrDefaultAsync());
+
                 result.Add(item.ProductId, avgCost);
             }
 

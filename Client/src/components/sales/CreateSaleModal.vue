@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-// [DÜZELTME 1] Servis isimlendirmesi ve kullanımı eşitlendi
 import saleService from '../../services/saleService';
 
 // --- IMPORT PARTIALS ---
@@ -102,7 +101,6 @@ const saveSale = async () => {
             }))
         };
 
-        // [DÜZELTME 3] orderService yerine yukarıdaki saleService kullanıldı
         await saleService.createSale(payload);
         
         alert('Sipariş başarıyla oluşturuldu!'); 
