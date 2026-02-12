@@ -5,7 +5,6 @@ import { productSchema, defaultProductValues } from '../../schemas/productSchema
 import productService from '../../services/productService'; 
 import categoryService from '../../services/categoryService'; 
 
-// --- TİP TANIMLAMALARI ---
 export interface Category {
     id: number;
     name: string;
@@ -29,7 +28,6 @@ export interface ProductFormState {
     shippingPrice?: number;
     size?: string;
     color?: string;
-    // [YENİ] Concurrency Check için gerekli
     rowVersion?: string;
     [key: string]: any;
 }
@@ -38,7 +36,6 @@ export function useProductForm() {
     const toast = useToast();
     const authStore = useAuthStore();
     
-    // --- STATE ---
     const submitting = ref<boolean>(false);
     const loadingCategories = ref<boolean>(false);
     const categories = ref<Category[]>([]);
@@ -46,12 +43,39 @@ export function useProductForm() {
     const adjustmentReason = ref<string>('Stok Güncellemesi'); 
     const originalStock = ref<number>(0);
     
-    // State'i undefined başlatmak için cast ediyoruz
     const form = ref<ProductFormState>({ ...defaultProductValues } as unknown as ProductFormState);
     
-    const discountRate = ref<number>(0);
+    // ✅ COMPUTED İLE İNDİRİM ORANI YÖNETİMİ
+    const discountRate = computed({
+        get: () => {
+            const price = Number(form.value.price);
+            const discounted = Number(form.value.discountedPrice);
+            
+            if (price > 0 && discounted > 0 && discounted < price) {
+                const rate = ((price - discounted) / price) * 100;
+                return Math.round(rate);
+            }
+            return 0;
+        },
+        set: (value: string | number) => {
+            // String veya number gelebilir, her durumda integer'a çevir
+            const rate = parseInt(String(value).replace(',', '.'), 10);
+            const price = Number(form.value.price);
+            
+            if (isNaN(rate) || rate < 0) {
+                form.value.discountedPrice = undefined;
+                return;
+            }
+            
+            if (price > 0 && rate > 0 && rate <= 100) {
+                const discountAmount = (price * rate) / 100;
+                form.value.discountedPrice = parseFloat((price - discountAmount).toFixed(2));
+            } else if (rate === 0) {
+                form.value.discountedPrice = undefined;
+            }
+        }
+    });
 
-    // --- CONSTANTS ---
     const productTypes = [
         { id: 0, name: '📦 Fiziksel' },
         { id: 1, name: '💻 Dijital' },
@@ -64,46 +88,25 @@ export function useProductForm() {
         { id: 2, name: 'Kapıda Ödeme' }
     ];
 
-    // --- COMPUTED LOGIC ---
     const isClothingCategory = computed(() => {
         if (!form.value.categoryId) return false;
         const cat = categories.value.find(c => c.id === form.value.categoryId);
-        return cat?.type === 1; // 1: Giyim
+        return cat?.type === 1;
     });
 
-    // --- WATCHERS & MATH ---
     watch(isClothingCategory, (val) => {
         if (val) form.value.type = 0;
     });
 
-    const calculateRate = () => {
-        const price = Number(form.value.price);
-        const discounted = Number(form.value.discountedPrice);
-
-        if (price > 0 && discounted > 0) {
-            const rate = ((price - discounted) / price) * 100;
-            discountRate.value = parseFloat(rate.toFixed(2));
-        } else {
-            discountRate.value = 0;
+    // ✅ Fiyat değişince indirimli fiyatı güncelle (oran sabit kalırsa)
+    watch(() => form.value.price, (newPrice, oldPrice) => {
+        if (discountRate.value > 0 && newPrice !== oldPrice) {
+            const rate = discountRate.value;
+            const discountAmount = (newPrice * rate) / 100;
+            form.value.discountedPrice = parseFloat((newPrice - discountAmount).toFixed(2));
         }
-    };
-
-    const calculatePriceFromRate = () => {
-        const price = Number(form.value.price);
-        
-        if (price > 0 && discountRate.value > 0) {
-            const discountAmount = (price * discountRate.value) / 100;
-            form.value.discountedPrice = parseFloat((price - discountAmount).toFixed(2));
-        } else {
-            form.value.discountedPrice = undefined;
-        }
-    };
-
-    watch(() => form.value.price, () => {
-        if (discountRate.value > 0) calculatePriceFromRate();
     });
 
-    // --- ACTIONS ---
     const fetchCategories = async () => {
         if (categories.value.length > 0) return;
         try {
@@ -122,7 +125,6 @@ export function useProductForm() {
         errors.value = {}; 
 
         if (productData) {
-            // Edit
             form.value = { 
                 ...defaultProductValues, 
                 ...productData,
@@ -137,26 +139,21 @@ export function useProductForm() {
                 discountedPrice: productData.discountedPrice ?? undefined,
                 stock: Number(productData.stock || 0),
                 shippingType: Number(productData.shippingType || 0),
-                // [YENİ] RowVersion'ı al
                 rowVersion: productData.rowVersion
             } as ProductFormState;
 
             originalStock.value = productData.stock || 0;
             adjustmentReason.value = 'Stok Güncellemesi';
-            
-            calculateRate();
         } else {
-            // Yeni
             form.value = { 
                 ...defaultProductValues,
                 categoryId: undefined, 
                 discountedPrice: undefined,
-                rowVersion: undefined // Yeni kayıtta yoktur
+                rowVersion: undefined
             } as unknown as ProductFormState;
             
             originalStock.value = 0;
             adjustmentReason.value = 'Açılış Stoğu';
-            discountRate.value = 0;
         }
     };
 
@@ -188,11 +185,7 @@ export function useProductForm() {
             
             if (form.value.id) formData.append('Id', String(form.value.id));
             if (authStore.user?.tenantId) formData.append('TenantId', String(authStore.user.tenantId));
-
-            // [YENİ] RowVersion Ekle (Concurrency Check)
-            if (form.value.rowVersion) {
-                formData.append('RowVersion', form.value.rowVersion);
-            }
+            if (form.value.rowVersion) formData.append('RowVersion', form.value.rowVersion);
 
             formData.append('Name', form.value.name);
             if (form.value.categoryId) formData.append('CategoryId', String(form.value.categoryId));
@@ -229,8 +222,6 @@ export function useProductForm() {
             if (onSuccess) onSuccess(response);
         } catch (err: any) {
             console.error(err);
-            // Backend'den 409 Conflict gelirse özel mesaj gösterilebilir,
-            // ama genel hata yakalayıcı mesajı gösterecektir.
             const msg = err.response?.data?.message || (err as any).customMessage || "İşlem başarısız.";
             toast.error(msg);
         } finally {
@@ -246,13 +237,11 @@ export function useProductForm() {
         submitting,
         adjustmentReason, 
         originalStock, 
-        discountRate, 
+        discountRate,
         productTypes,
         shippingTypes,
         isClothingCategory,
         initForm,
-        submitForm,
-        calculateRate,
-        calculatePriceFromRate
+        submitForm
     };
 }

@@ -56,7 +56,7 @@ const emit = defineEmits<{
     (e: 'page-change', page: number): void;
     (e: 'pay', sale: Sale): void;
     (e: 'delete', id: number): void;
-    (e: 'update-status', payload: { id: number, status: string }): void;
+    (e: 'update-status', payload: { id: number, status: number }): void;
 }>();
 
 // --- LOCAL STATE (UI State) ---
@@ -70,10 +70,17 @@ const toggleRowExpansion = (id: number) => {
 const { tooltip, showTooltip, hideTooltip } = useTooltip();
 
 // --- KARGO İŞLEMLERİ ---
-const shippingStatuses = ['Sipariş Alındı', 'Hazırlanıyor', 'Kargoya Verildi', 'Teslim Edildi', 'İade'];
+const shippingOptions = [
+    { label: 'Sipariş Alındı', value: 1 },  
+    { label: 'Hazırlanıyor', value: 2 },    
+    { label: 'Kargoya Verildi', value: 3 },  
+    { label: 'Teslim Edildi', value: 4 },   
+    { label: 'İptal Edildi', value: 5 },     
+    { label: 'İade Edildi', value: 6 }       
+];
 
-const onStatusChange = (sale: Sale, newStatus: string) => {
-    emit('update-status', { id: sale.id, status: newStatus });
+const onStatusChange = (sale: Sale, newStatus: string | number) => {
+    emit('update-status', { id: sale.id, status: Number(newStatus) });
 };
 
 // --- HIGHLIGHT ---
@@ -227,8 +234,8 @@ watch(() => props.highlightId, (newId) => {
                                             'text-red-400 border-red-500/30': sale.shippingStatus === 'İade'
                                         }"
                                     >
-                                        <option v-for="status in shippingStatuses" :key="status" :value="status">
-                                            {{ status }}
+                                        <option v-for="option in shippingOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
                                         </option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">

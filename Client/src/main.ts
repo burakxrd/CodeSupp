@@ -15,7 +15,6 @@ app.use(createPinia())
 app.use(router)
 
 const toastOptions: PluginOptions = {
-
     position: POSITION.TOP_RIGHT, 
     timeout: 3000,
     closeOnClick: true,

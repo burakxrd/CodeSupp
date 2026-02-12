@@ -266,9 +266,31 @@ namespace CodeSupp.Services.Products
 
         private void ValidateProductPrices(Product product)
         {
-            if (product.DiscountedPrice.HasValue && product.DiscountedPrice.Value >= product.Price)
+            if (product.DiscountedPrice.HasValue)
             {
-                throw new InvalidOperationException($"İndirimli fiyat ({product.DiscountedPrice.Value}), satış fiyatından ({product.Price}) büyük veya ona eşit olamaz.");
+                // Eğer indirimli fiyat normal fiyattan büyük veya eşitse
+                if (product.DiscountedPrice.Value >= product.Price)
+                {
+                    throw new InvalidOperationException(
+                        $"İndirimli fiyat ({product.DiscountedPrice.Value:C}), " +
+                        $"satış fiyatından ({product.Price:C}) büyük veya ona eşit olamaz.");
+                }
+
+                // Şüpheli düşük fiyat kontrolü (muhtemelen yüzde hesabı yanlış)
+                // Eğer indirimli fiyat, normal fiyatın %10'undan azsa uyarı ver
+                decimal suspiciouslyLowThreshold = product.Price * 0.10m;
+
+                if (product.DiscountedPrice.Value < suspiciouslyLowThreshold)
+                {
+                    // İndirim oranını hesapla ve göster
+                    decimal discountPercent = ((product.Price - product.DiscountedPrice.Value) / product.Price) * 100;
+
+                    throw new InvalidOperationException(
+                        $"İndirimli fiyat ({product.DiscountedPrice.Value:C}) çok düşük görünüyor " +
+                        $"(Normal fiyat: {product.Price:C}, İndirim: %{discountPercent:F0}). " +
+                        $"İndirim yüzdesini doğru girdiğinizden emin olun. " +
+                        $"Örnek: %45 indirim için {(product.Price * 0.55m):C} girilmelidir.");
+                }
             }
         }
 

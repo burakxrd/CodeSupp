@@ -4,7 +4,6 @@ import apiClient from './httpClient';
 
 import dashboardService from './dashboardService';
 import settingsService from './settingsService';
-import integrationService from './integrationService';
 import categoryService from './categoryService';
 import productService from './productService';
 import customerService from './customerService';
@@ -35,7 +34,6 @@ const api = {
 
     ...dashboardService,
     ...settingsService,
-    ...integrationService,
     ...categoryService,
     ...productService,
     ...customerService,

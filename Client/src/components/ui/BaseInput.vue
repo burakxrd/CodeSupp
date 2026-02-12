@@ -5,7 +5,6 @@ defineOptions({
   inheritAttrs: false
 });
 
-// --- TYPES & PROPS ---
 interface Props {
   label?: string;
   modelValue?: string | number | null; 
@@ -19,7 +18,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   label: '',
-  // Varsayılan değer boş string kalsın, null gelirse input boş görünür
   modelValue: '', 
   id: null,
   placeholder: '',
@@ -29,10 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 });
 
-// --- EMITS ---
 const emit = defineEmits<{
-  // Inputtan çıkan değer genellikle string veya number olur, null olmaz.
-  // O yüzden burayı değiştirmemize gerek yok, ama istersen | null ekleyebilirsin.
   (e: 'update:modelValue', value: string | number): void; 
   (e: 'blur', event: Event): void;
   (e: 'focus', event: Event): void;
@@ -40,14 +35,12 @@ const emit = defineEmits<{
 
 const attrs = useAttrs();
 
-// Benzersiz ID oluşturma
 const inputId = computed<string>(() => props.id || `input-${Math.random().toString(36).slice(2, 9)}`);
 const helpTextId = computed<string>(() => `${inputId.value}-help`);
 const errorId = computed<string>(() => `${inputId.value}-error`);
 
-// Input sınıflarını dinamik hesapla
 const inputClasses = computed<string>(() => {
-  const base = "w-full bg-[#151521] border rounded-lg py-3 text-white outline-none transition-all placeholder-gray-600 disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = "w-full bg-[#151521] border rounded-lg py-3 text-white outline-ne transition-all placeholder-gray-600 disabled:opacity-50 disabled:cursor-not-allowed";
   
   let stateClass = "border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500";
   
@@ -60,6 +53,7 @@ const inputClasses = computed<string>(() => {
   return `${base} ${stateClass} px-4`;
 });
 
+// ✅ TEMİZ VE BASİT - Sadece değeri gönder, dönüşüm parent'ta olsun
 const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   emit('update:modelValue', target.value);

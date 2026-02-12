@@ -7,8 +7,7 @@ import DashboardHeader from '../components/DashboardHeader.vue';
 const route = useRoute();
 
 // --- STATE ---
-// Sidebar'ın açık/kapalı durumunu burada tutuyoruz.
-// Varsayılan olarak false (Kapalı/Mobil). Desktop'ta CSS zaten onu görünür kılıyor.
+
 const isSidebarOpen = ref<boolean>(false);
 
 // --- ACTIONS ---

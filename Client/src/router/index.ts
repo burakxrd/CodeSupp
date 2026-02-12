@@ -59,11 +59,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/dashboard/FinanceView.vue') 
       },
       { 
-        path: 'ai-center', 
-        name: 'ai-center', 
-        component: () => import('../views/dashboard/AiCenterView.vue') 
-      },
-      { 
         path: 'settings', 
         name: 'settings', 
         component: () => import('../views/dashboard/SettingsView.vue') 
@@ -109,7 +104,6 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Login'e atarken, gitmek istediği yeri query olarak ekle
     next({ name: 'login', query: { redirect: to.fullPath } });
   } 
   else if (to.meta.guestOnly && isAuthenticated) {

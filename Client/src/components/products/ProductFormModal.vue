@@ -30,8 +30,6 @@ const emit = defineEmits<{
 }>();
 
 // 1. Logic Import
-// Not: useProductForm henüz TS değilse 'form' nesnesi 'any' olabilir.
-// Bir sonraki adımda useProductForm'u dönüştürmeliyiz.
 const { 
     form, 
     errors,
@@ -40,14 +38,13 @@ const {
     submitting, 
     adjustmentReason, 
     originalStock,
-    discountRate,
+    discountRate, // ✅ Artık computed
     isClothingCategory,
     productTypes,
     shippingTypes,
     initForm, 
-    submitForm,
-    calculateRate,
-    calculatePriceFromRate
+    submitForm
+    // ❌ calculateRate ve calculatePriceFromRate kaldırıldı
 } = useProductForm();
 
 // 2. UI State
@@ -58,7 +55,6 @@ watch(
     () => props.isOpen, 
     (isOpen) => {
         if (isOpen) {
-            // initForm'un parametre tipini composable'da belirleyeceğiz
             initForm(props.productData);
             selectedImage.value = null;
         }
@@ -68,7 +64,6 @@ watch(
 
 // 4. Kaydet
 const handleSave = () => {
-    // submitForm'a dosya ve callback gönderiyoruz
     submitForm(selectedImage.value, () => {
         emit('save-success');
         emit('close');
@@ -165,18 +160,23 @@ const handleSave = () => {
                             <span>💰</span> Fiyatlandırma
                         </h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <BaseInput label="Stok Kodu" v-model="form.code" :error="errors.code" placeholder="Otomatik" />
+                            <BaseInput 
+                                label="Stok Kodu" 
+                                v-model="form.code" 
+                                :error="errors.code" 
+                                placeholder="Otomatik" 
+                            />
                             
                             <BaseInput 
                                 label="Alış Fiyatı" 
-                                v-model.number="form.costPrice" 
+                                v-model="form.costPrice" 
                                 type="number" 
                                 step="0.01" 
                                 placeholder="0.00" 
                             />
                             <BaseInput 
                                 label="Satış Fiyatı" 
-                                v-model.number="form.price" 
+                                v-model="form.price" 
                                 :error="errors.price" 
                                 type="number" 
                                 step="0.01" 
@@ -185,18 +185,19 @@ const handleSave = () => {
                             />
                         </div>
 
+                        <!-- ✅ TEMİZLENMİŞ İNDİRİM ALANI -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 bg-[#151521] p-4 rounded-xl border border-gray-700/50">
                             <BaseInput 
                                 label="İndirim Oranı (%)" 
-                                v-model.number="discountRate" 
-                                @input="calculatePriceFromRate" 
+                                v-model="discountRate"
                                 type="number" 
+                                min="0"
+                                max="100"
                                 placeholder="%0" 
                             />
                             <BaseInput 
                                 label="İndirimli Fiyat" 
-                                v-model.number="form.discountedPrice" 
-                                @input="calculateRate" 
+                                v-model="form.discountedPrice"
                                 type="number" 
                                 step="0.01" 
                                 placeholder="Opsiyonel" 
@@ -220,7 +221,7 @@ const handleSave = () => {
                             />
                             <BaseInput 
                                 label="Kargo Ücreti" 
-                                v-model.number="form.shippingPrice" 
+                                v-model="form.shippingPrice"
                                 type="number" 
                                 step="0.01" 
                                 :disabled="form.shippingType === 0" 
